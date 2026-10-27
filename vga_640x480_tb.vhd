@@ -1,6 +1,6 @@
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
 use STD.ENV.ALL;
 
 entity vga_640x480_tb is
@@ -8,21 +8,26 @@ end vga_640x480_tb;
 
 architecture Behavioral of vga_640x480_tb is
 
-    signal clk   : STD_LOGIC := '0';
-    signal rst   : STD_LOGIC := '1';
+    -- 系統時脈與 Reset
+    signal clk : STD_LOGIC := '0';
+    signal rst : STD_LOGIC := '1';
 
+    -- VGA 同步訊號
     signal hsync : STD_LOGIC;
     signal vsync : STD_LOGIC;
 
-    signal R : STD_LOGIC;
-    signal G : STD_LOGIC;
-    signal B : STD_LOGIC;
+    -- 8-bit RGB，每個顏色分量範圍為 0～255
+    signal R : STD_LOGIC_VECTOR(7 downto 0);
+    signal G : STD_LOGIC_VECTOR(7 downto 0);
+    signal B : STD_LOGIC_VECTOR(7 downto 0);
 
     constant CLK_PERIOD : time := 10 ns;
 
 begin
 
-    -- Instantiate VGA design
+    -- ========================================
+    -- 1. 連接 VGA 主程式
+    -- ========================================
     uut : entity work.vga_640x480
         port map (
             clk   => clk,
@@ -34,7 +39,9 @@ begin
             B     => B
         );
 
-    -- 100 MHz clock
+    -- ========================================
+    -- 2. 產生 100 MHz 時脈
+    -- ========================================
     clk_process : process
     begin
         while true loop
@@ -46,7 +53,9 @@ begin
         end loop;
     end process;
 
-    -- Reset
+    -- ========================================
+    -- 3. Reset 測試
+    -- ========================================
     stim_process : process
     begin
         rst <= '1';
@@ -56,11 +65,16 @@ begin
         wait;
     end process;
 
-    -- Check RGB using independent scan counters
+    -- ========================================
+    -- 4. RGB 顏色驗證
+    -- 使用獨立的 VGA 掃描計數器
+    -- ========================================
     check_rgb_process : process
+
         variable tb_div : integer range 0 to 3 := 0;
         variable tb_h   : integer range 0 to 799 := 0;
         variable tb_v   : integer range 0 to 524 := 0;
+
     begin
         loop
             wait until rising_edge(clk);
@@ -71,7 +85,7 @@ begin
                 tb_v   := 0;
 
             else
-                -- Match the DUT's divide-by-4 pixel enable
+                -- 模擬除以 4 的像素更新時機
                 if tb_div = 3 then
                     tb_div := 0;
 
@@ -92,35 +106,78 @@ begin
                     tb_div := tb_div + 1;
                 end if;
 
-                -- Allow DUT outputs to settle
+                -- 等待主程式輸出穩定
                 wait for 1 ns;
 
-                -- Red rectangle: (50,50), size 150x100
-                if tb_h = 50 and tb_v = 50 then
-                    assert R = '1' and G = '0' and B = '0'
-                        report "ERROR: Red rectangle"
-                        severity error;
+                -- --------------------------------
+                -- 測試淺黃色
+                -- RGB = (255, 242, 166)
+                -- 測試座標：(320, 100)
+                -- --------------------------------
+                if tb_h = 320 and tb_v = 100 then
+                    assert
+                        R = "11111111" and
+                        G = "11110010" and
+                        B = "10100110"
+                    report "ERROR: Light yellow pixel"
+                    severity error;
+
+                    if R = "11111111" and
+                       G = "11110010" and
+                       B = "10100110" then
+                        report "Light yellow check passed"
+                            severity note;
+                    end if;
                 end if;
 
-                -- Green rectangle: (250,150), size 120x150
-                if tb_h = 250 and tb_v = 150 then
-                    assert R = '0' and G = '1' and B = '0'
-                        report "ERROR: Green rectangle"
-                        severity error;
+                -- --------------------------------
+                -- 測試淺藍色
+                -- RGB = (173, 216, 230)
+                -- 測試座標：(110, 350)
+                -- --------------------------------
+                if tb_h = 110 and tb_v = 350 then
+                    assert
+                        R = "10101101" and
+                        G = "11011000" and
+                        B = "11100110"
+                    report "ERROR: Light blue pixel"
+                    severity error;
+
+                    if R = "10101101" and
+                       G = "11011000" and
+                       B = "11100110" then
+                        report "Light blue check passed"
+                            severity note;
+                    end if;
                 end if;
 
-                -- Blue rectangle: (420,250), size 160x120
-                if tb_h = 420 and tb_v = 250 then
-                    assert R = '0' and G = '0' and B = '1'
-                        report "ERROR: Blue rectangle"
-                        severity error;
+                -- --------------------------------
+                -- 測試淺紫色
+                -- RGB = (216, 180, 226)
+                -- 測試座標：(530, 350)
+                -- --------------------------------
+                if tb_h = 530 and tb_v = 350 then
+                    assert
+                        R = "11011000" and
+                        G = "10110100" and
+                        B = "11100010"
+                    report "ERROR: Light purple pixel"
+                    severity error;
 
-                    report "RGB checks passed"
+                    if R = "11011000" and
+                       G = "10110100" and
+                       B = "11100010" then
+                        report "Light purple check passed"
+                            severity note;
+                    end if;
+
+                    report "RGB checks completed"
                         severity note;
 
                     stop;
                     wait;
                 end if;
+
             end if;
         end loop;
     end process;
