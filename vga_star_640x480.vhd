@@ -1,3 +1,4 @@
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
@@ -7,9 +8,9 @@ entity vga_640x480 is
         rst   : in  STD_LOGIC;
         hsync : out STD_LOGIC;
         vsync : out STD_LOGIC;
-        R : out STD_LOGIC_VECTOR(7 downto 0);
-		G : out STD_LOGIC_VECTOR(7 downto 0);
-		B : out STD_LOGIC_VECTOR(7 downto 0)
+        R     : out STD_LOGIC_VECTOR(7 downto 0);
+        G     : out STD_LOGIC_VECTOR(7 downto 0);
+        B     : out STD_LOGIC_VECTOR(7 downto 0)
     );
 end vga_640x480;
 
@@ -28,15 +29,30 @@ architecture Behavioral of vga_640x480 is
     constant V_BACK    : integer := 33;
     constant V_TOTAL   : integer := 525;
 
-    -- 三顆星星的中心座標
-    constant RED_X   : integer := 320;
+    -- 七顆星星的中心座標
+    -- 上排：紅、綠、藍
+    constant RED_X   : integer := 110;
     constant RED_Y   : integer := 100;
 
-    constant GREEN_X : integer := 110;
-    constant GREEN_Y : integer := 350;
+    constant GREEN_X : integer := 320;
+    constant GREEN_Y : integer := 100;
 
     constant BLUE_X  : integer := 530;
-    constant BLUE_Y  : integer := 350;
+    constant BLUE_Y  : integer := 100;
+
+    -- 下排：黃、青、洋紅
+    constant YELLOW_X : integer := 110;
+    constant YELLOW_Y : integer := 350;
+
+    constant CYAN_X : integer := 320;
+    constant CYAN_Y : integer := 350;
+
+    constant MAG_X : integer := 530;
+    constant MAG_Y : integer := 350;
+
+    -- 中央：白色
+    constant WHITE_X : integer := 320;
+    constant WHITE_Y : integer := 225;
 
     -- 五角星頂點座標陣列
     type point_array is array (0 to 9) of integer;
@@ -182,31 +198,61 @@ begin
 
         if video_on = '1' then
 
-            -- 紅色五角星：上方中央
+            -- 紅色星星：上排左側
             if point_in_star(
                 h_count, v_count, RED_X, RED_Y
             ) then
-			    -- light yellow, R = 255、G = 242、B = 166
                 R <= "11111111";
-				G <= "11110010";
-				B <= "10100110";
+                G <= "00000000";
+                B <= "00000000";
 
-            -- 綠色五角星：左下角
+            -- 綠色星星：上排中央
             elsif point_in_star(
                 h_count, v_count, GREEN_X, GREEN_Y
             ) then
-			    -- light blue, R = 173、G = 216、B = 230
-				R <= "10101101";
-				G <= "11011000";
-				B <= "11100110";
-            -- 藍色五角星：右下角
+                R <= "00000000";
+                G <= "11111111";
+                B <= "00000000";
+
+            -- 藍色星星：上排右側
             elsif point_in_star(
                 h_count, v_count, BLUE_X, BLUE_Y
             ) then
-			    -- light violet, R = 216、G = 180、B = 226
-				R <= "11011000";
-				G <= "10110100";
-				B <= "11100010";
+                R <= "00000000";
+                G <= "00000000";
+                B <= "11111111";
+
+            -- 黃色星星：下排左側
+            elsif point_in_star(
+                h_count, v_count, YELLOW_X, YELLOW_Y
+            ) then
+                R <= "11111111";
+                G <= "11111111";
+                B <= "00000000";
+
+            -- 青色星星：下排中央
+            elsif point_in_star(
+                h_count, v_count, CYAN_X, CYAN_Y
+            ) then
+                R <= "00000000";
+                G <= "11111111";
+                B <= "11111111";
+
+            -- 洋紅色星星：下排右側
+            elsif point_in_star(
+                h_count, v_count, MAG_X, MAG_Y
+            ) then
+                R <= "11111111";
+                G <= "00000000";
+                B <= "11111111";
+
+            -- 白色星星：畫面中央
+            elsif point_in_star(
+                h_count, v_count, WHITE_X, WHITE_Y
+            ) then
+                R <= "11111111";
+                G <= "11111111";
+                B <= "11111111";
 
             end if;
 
