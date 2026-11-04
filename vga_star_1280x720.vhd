@@ -37,6 +37,15 @@ architecture Behavioral of vga_1280x720 is
 
     constant STAR_Y : integer_array :=
         (-60, -18, -16, 10, 55, 32, 55, 10, -16, -18);
+		
+    -- Star Speed Settings
+    constant RED_SPEED    : integer := 3;
+    constant GREEN_SPEED  : integer := 4;
+    constant BLUE_SPEED   : integer := 5;
+    constant YELLOW_SPEED : integer := 3;
+    constant CYAN_SPEED   : integer := 4;
+    constant MAG_SPEED    : integer := 5;
+    constant WHITE_SPEED  : integer := 6;
 
     -- Pixel counters
     signal x_count : integer range 0 to H_TOTAL-1 := 0;
@@ -219,8 +228,8 @@ begin
                     red_x_pos <= 1400;
                     red_y_pos <= -60;
                 else
-                    red_x_pos <= red_x_pos - 2;
-                    red_y_pos <= red_y_pos + 2;
+                    red_x_pos <= red_x_pos - RED_SPEED;
+                    red_y_pos <= red_y_pos + RED_SPEED;
                 end if;
 
                 -- Green star: speed 3
@@ -228,8 +237,8 @@ begin
                     green_x_pos <= 1400;
                     green_y_pos <= -60;
                 else
-                    green_x_pos <= green_x_pos - 3;
-                    green_y_pos <= green_y_pos + 3;
+                    green_x_pos <= green_x_pos - GREEN_SPEED;
+                    green_y_pos <= green_y_pos + GREEN_SPEED;
                 end if;
 
                 -- Blue star: speed 4
@@ -237,8 +246,8 @@ begin
                     blue_x_pos <= 1400;
                     blue_y_pos <= -60;
                 else
-                    blue_x_pos <= blue_x_pos - 4;
-                    blue_y_pos <= blue_y_pos + 4;
+                    blue_x_pos <= blue_x_pos - BLUE_SPEED;
+                    blue_y_pos <= blue_y_pos + BLUE_SPEED;
                 end if;
 
                 -- Yellow star: speed 2
@@ -246,8 +255,8 @@ begin
                     yellow_x_pos <= 1400;
                     yellow_y_pos <= -60;
                 else
-                    yellow_x_pos <= yellow_x_pos - 2;
-                    yellow_y_pos <= yellow_y_pos + 2;
+                    yellow_x_pos <= yellow_x_pos - YELLOW_SPEED;
+                    yellow_y_pos <= yellow_y_pos + YELLOW_SPEED;
                 end if;
 
                 -- Cyan star: speed 3
@@ -255,8 +264,8 @@ begin
                     cyan_x_pos <= 1400;
                     cyan_y_pos <= -60;
                 else
-                    cyan_x_pos <= cyan_x_pos - 3;
-                    cyan_y_pos <= cyan_y_pos + 3;
+                    cyan_x_pos <= cyan_x_pos - CYAN_SPEED;
+                    cyan_y_pos <= cyan_y_pos + CYAN_SPEED;
                 end if;
 
                 -- Magenta star: speed 4
@@ -264,8 +273,8 @@ begin
                     mag_x_pos <= 1400;
                     mag_y_pos <= -60;
                 else
-                    mag_x_pos <= mag_x_pos - 4;
-                    mag_y_pos <= mag_y_pos + 4;
+                    mag_x_pos <= mag_x_pos - MAG_SPEED;
+                    mag_y_pos <= mag_y_pos + MAG_SPEED;
                 end if;
 
                 -- White star: speed 5
@@ -273,8 +282,8 @@ begin
                     white_x_pos <= 1400;
                     white_y_pos <= -60;
                 else
-                    white_x_pos <= white_x_pos - 5;
-                    white_y_pos <= white_y_pos + 5;
+                    white_x_pos <= white_x_pos - WHITE_SPEED;
+                    white_y_pos <= white_y_pos + WHITE_SPEED;
                 end if;
 
             end if;
