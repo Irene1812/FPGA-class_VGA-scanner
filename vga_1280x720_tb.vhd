@@ -4,10 +4,10 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use STD.TEXTIO.ALL;
 
-entity vga_1280x720_tb is
-end vga_1280x720_tb;
+entity vga_star_tb is
+end vga_star_tb;
 
-architecture Behavioral of vga_1280x720_tb is
+architecture Behavioral of vga_star_tb is
 
     constant H_DISPLAY : integer := 1280;
     constant H_TOTAL   : integer := 1650;
@@ -44,7 +44,7 @@ begin
     -- DUT
     ------------------------------------------------
 
-    DUT : entity work.vga_1280x720
+    DUT : entity work.vga_star
         port map (
             clk   => clk,
             rst   => rst,
