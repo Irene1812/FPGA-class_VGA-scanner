@@ -50,9 +50,9 @@ begin
             rst   => rst,
             hsync => hsync,
             vsync => vsync,
-            R     => R,
-            G     => G,
-            B     => B
+            red    => R,
+            green  => G,
+            blue   => B
         );
 
     ------------------------------------------------
