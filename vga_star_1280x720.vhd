@@ -1,61 +1,49 @@
-----------------------------------------------------------------------------------
--- 專題名稱：VGA 1280x720 動態彩色星星顯示系統 (vga_star.vhd)
--- 說明：本程式負責產生 720p 螢幕所需的時序、掃描座標、三顆星星的幾何形狀判斷，
---       以及每隔固定幀數（Frames）自動循環交換紅、綠、藍三色的動畫邏輯。
-----------------------------------------------------------------------------------
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
--- 【Entity（實體介面宣告）】
--- 定義這顆晶片對外的所有實體接腳（Inputs / Outputs）
 entity vga_star is
     Port (
-        clk   : in  STD_LOGIC;                      -- 系統主時脈（通常為 100MHz）
-        rst   : in  STD_LOGIC;                      -- 重置按鈕（高電位時將系統歸零）
+        clk   : in  STD_LOGIC;
+        rst   : in  STD_LOGIC;
 
-        hsync : out STD_LOGIC;                      -- 水平同步訊號（通知螢幕換行）
-        vsync : out STD_LOGIC;                      -- 垂直同步訊號（通知螢幕換頁/重回頂端）
+        hsync : out STD_LOGIC;
+        vsync : out STD_LOGIC;
 
-        red   : out STD_LOGIC_VECTOR(3 downto 0);   -- 紅色色階輸出（4位元，共16階）
-        green : out STD_LOGIC_VECTOR(3 downto 0);   -- 綠色色階輸出（4位元）
-        blue  : out STD_LOGIC_VECTOR(3 downto 0)    -- 藍色色階輸出（4位元）
+        red   : out STD_LOGIC_VECTOR(3 downto 0);
+        green : out STD_LOGIC_VECTOR(3 downto 0);
+        blue  : out STD_LOGIC_VECTOR(3 downto 0)
     );
 end vga_star;
 
 architecture Behavioral of vga_star is
 
-    ------------------------------------------------------------
-    -- 【VGA 1280x720 @ 60Hz 標準時序規格常數】
-    -- 包含實際顯示區與電子束折返掃描的隱形區（Front/Back Porch 與 Sync）
-    ------------------------------------------------------------
-    constant H_DISPLAY : integer := 1280;   -- 水平有效顯示像素寬度
-    constant H_FRONT   : integer := 110;    -- 水平前肩區
-    constant H_SYNC    : integer := 40;     -- 水平同步脈衝寬度
-    constant H_BACK    : integer := 220;    -- 水平後肩區
-    constant H_TOTAL   : integer := 1650;   -- 水平總像素數（含折返）
+    constant H_DISPLAY : integer := 1280;
+    constant H_FRONT   : integer := 110;
+    constant H_SYNC    : integer := 40;
+    constant H_BACK    : integer := 220;
+    constant H_TOTAL   : integer := 1650;
 
-    constant V_DISPLAY : integer := 720;    -- 垂直有效顯示掃描線高度
-    constant V_FRONT   : integer := 5;      -- 垂直前肩區
-    constant V_SYNC    : integer := 5;      -- 垂直同步脈衝寬度
-    constant V_BACK    : integer := 20;     -- 垂直後肩區
-    constant V_TOTAL   : integer := 750;    -- 垂直總掃描線數（含折返）
+    constant V_DISPLAY : integer := 720;
+    constant V_FRONT   : integer := 5;
+    constant V_SYNC    : integer := 5;
+    constant V_BACK    : integer := 20;
+    constant V_TOTAL   : integer := 750;
 
     ------------------------------------------------------------
     -- 【星星顏色動態交換參數】
     ------------------------------------------------------------
-    constant COLOR_CHANGE_FRAMES : integer := 60;   -- 每經過 60 幀（約 1 秒）切換一次顏色
+    constant COLOR_CHANGE_FRAMES : integer := 60;   -- 60 frames per color
 
     signal color_frame_counter : 
-        integer range 0 to COLOR_CHANGE_FRAMES-1 := 0;  -- 幀數累積計數器
+        integer range 0 to COLOR_CHANGE_FRAMES-1 := 0;  -- accumulation frames
 
     signal color_phase : 
-        integer range 0 to 2 := 0;                  -- 色彩循環階段狀態（0、1、2）
+        integer range 0 to 2 := 0;                  -- color state（0、1、2）
 
     ------------------------------------------------------------
     -- 【星星幾何形狀定義】
-    -- 以中心點 (0,0) 為基準的 10 個多邊形頂點相對座標陣列
     ------------------------------------------------------------
     type star_array is array (0 to 9) of integer;
 
@@ -68,8 +56,8 @@ architecture Behavioral of vga_star is
     ------------------------------------------------------------
     -- 【VGA 掃描座標與時脈分頻內部信號】
     ------------------------------------------------------------
-    signal x_count : integer range 0 to H_TOTAL-1 := 0;   -- 當前水平像素掃描座標
-    signal y_count : integer range 0 to V_TOTAL-1 := 0;   -- 當前垂直掃描線座標
+    signal x_count : integer range 0 to H_TOTAL-1 := 0;
+    signal y_count : integer range 0 to V_TOTAL-1 := 0;
 
     signal pixel_acc  : integer range 0 to 9999 := 0;     -- 像素時脈分頻累積器
     signal pixel_tick : STD_LOGIC := '0';                 -- 像素時脈致能脈衝（每畫一個像素脈衝一次）
@@ -77,14 +65,14 @@ architecture Behavioral of vga_star is
     ------------------------------------------------------------
     -- 【三顆固定星星的中心座標】
     ------------------------------------------------------------
-    constant RED_X   : integer := 320;    -- 第一顆星 X 軸中心（靠左）
-    constant RED_Y   : integer := 360;    -- 第一顆星 Y 軸中心（垂直置中）
+    constant RED_X   : integer := 320;
+    constant RED_Y   : integer := 360;
 
-    constant GREEN_X : integer := 640;    -- 第二顆星 X 軸中心（正中央）
-    constant GREEN_Y : integer := 360;    -- 第二顆星 Y 軸中心
+    constant GREEN_X : integer := 640;
+    constant GREEN_Y : integer := 360;
 
-    constant BLUE_X  : integer := 960;    -- 第三顆星 X 軸中心（靠右）
-    constant BLUE_Y  : integer := 360;    -- 第三顆星 Y 軸中心
+    constant BLUE_X  : integer := 960;
+    constant BLUE_Y  : integer := 360;
 
     ------------------------------------------------------------
     -- 【射線交點演算法函數：判斷點 (px, py) 是否在星星內部】
@@ -147,7 +135,6 @@ begin
 
     ------------------------------------------------------------
     -- 【Process 2: 雙層掃描座標計數器 (VGA Counters)】
-    -- 模擬傳統電視與螢幕電子束「由左至右、由上往下」的掃描軌跡
     ------------------------------------------------------------
     VGA_COUNTER : process(clk, rst)
     begin
@@ -196,7 +183,6 @@ begin
 
     ------------------------------------------------------------
     -- 【Process 4: 星星顏色循環計時器 (Color Exchange)】
-    -- 每一幀畫面結束時進行一次幀數累積，滿 60 幀（約 0.5~1秒）就切換一次色相狀態
     ------------------------------------------------------------
     COLOR_CHANGE : process(clk, rst)
     begin
@@ -228,7 +214,6 @@ begin
     ------------------------------------------------------------
     RGB_OUTPUT : process(x_count, y_count, color_phase)
     begin
-        -- 預設背景為黑色（消隱區與背景色）
         red   <= "0000";
         green <= "0000";
         blue  <= "0000";
@@ -241,9 +226,9 @@ begin
             ----------------------------------------------------
             if point_in_star(x_count, y_count, RED_X, RED_Y) then
                 case color_phase is
-                    when 0      => red   <= "1111";  -- 階段 0：顯示紅色
-                    when 1      => green <= "1111";  -- 階段 1：顯示綠色
-                    when 2      => blue  <= "1111";  -- 階段 2：顯示藍色
+                    when 0      => red   <= "1111";
+                    when 1      => green <= "1111";
+                    when 2      => blue  <= "1111";
                     when others => red   <= "1111";
                 end case;
             end if;
@@ -253,9 +238,9 @@ begin
             ----------------------------------------------------
             if point_in_star(x_count, y_count, GREEN_X, GREEN_Y) then
                 case color_phase is
-                    when 0      => green <= "1111";  -- 階段 0：顯示綠色
-                    when 1      => blue  <= "1111";  -- 階段 1：顯示藍色
-                    when 2      => red   <= "1111";  -- 階段 2：顯示紅色
+                    when 0      => green <= "1111";
+                    when 1      => blue  <= "1111";
+                    when 2      => red   <= "1111";
                     when others => green <= "1111";
                 end case;
             end if;
@@ -265,9 +250,9 @@ begin
             ----------------------------------------------------
             if point_in_star(x_count, y_count, BLUE_X, BLUE_Y) then
                 case color_phase is
-                    when 0      => blue  <= "1111";  -- 階段 0：顯示藍色
-                    when 1      => red   <= "1111";  -- 階段 1：顯示紅色
-                    when 2      => green <= "1111";  -- 階段 2：顯示綠色
+                    when 0      => blue  <= "1111";
+                    when 1      => red   <= "1111";
+                    when 2      => green <= "1111";
                     when others => blue  <= "1111";
                 end case;
             end if;
