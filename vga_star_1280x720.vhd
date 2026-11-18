@@ -59,8 +59,8 @@ architecture Behavioral of vga_star is
     signal x_count : integer range 0 to H_TOTAL-1 := 0;
     signal y_count : integer range 0 to V_TOTAL-1 := 0;
 
-    signal pixel_acc  : integer range 0 to 9999 := 0;     -- 像素時脈分頻累積器
-    signal pixel_tick : STD_LOGIC := '0';                 -- 像素時脈致能脈衝（每畫一個像素脈衝一次）
+    signal pixel_acc  : integer range 0 to 9999 := 0;     
+    signal pixel_tick : STD_LOGIC := '0';                 
 
     ------------------------------------------------------------
     -- 【三顆固定星星的中心座標】
@@ -115,7 +115,6 @@ begin
 
     ------------------------------------------------------------
     -- 【Process 1: 像素時脈分頻處理 (Pixel Clock Enable)】
-    -- 將 100MHz 系統時脈降頻模擬出 720p 所需的 74.25MHz 像素時脈
     ------------------------------------------------------------
     PIXEL_CLOCK : process(clk, rst)
     begin
@@ -125,7 +124,7 @@ begin
         elsif rising_edge(clk) then
             if pixel_acc >= 2575 then
                 pixel_acc  <= pixel_acc - 2575;
-                pixel_tick <= '1';  -- 產生一個像素步進脈衝
+                pixel_tick <= '1';
             else
                 pixel_acc  <= pixel_acc + 7425;
                 pixel_tick <= '0';
@@ -144,15 +143,15 @@ begin
         elsif rising_edge(clk) then
             if pixel_tick = '1' then
                 if x_count = H_TOTAL - 1 then
-                    x_count <= 0;  -- 水平一行掃描完畢，歸零並換行
+                    x_count <= 0;
                     
                     if y_count = V_TOTAL - 1 then
-                        y_count <= 0;  -- 垂直一整頁掃描完畢，歸零重回畫面左上角
+                        y_count <= 0;
                     else
-                        y_count <= y_count + 1;  -- 往下移動一行
+                        y_count <= y_count + 1;
                     end if;
                 else
-                    x_count <= x_count + 1;  -- 往右移動一個像素
+                    x_count <= x_count + 1;
                 end if;
             end if;
         end if;
@@ -160,11 +159,9 @@ begin
 
     ------------------------------------------------------------
     -- 【Process 3: 同步訊號產生器 (VGA Synchronization Signals)】
-    -- 當計數器走到規格書規定的 Sync 區間時，拉低 hsync/vsync 脈衝
     ------------------------------------------------------------
     SYNC_SIGNAL : process(x_count, y_count)
     begin
-        -- 控制水平同步脈衝
         if (x_count >= H_DISPLAY + H_FRONT) and 
            (x_count < H_DISPLAY + H_FRONT + H_SYNC) then
             hsync <= '0';
@@ -172,7 +169,6 @@ begin
             hsync <= '1';
         end if;
 
-        -- 控制垂直同步脈衝
         if (y_count >= V_DISPLAY + V_FRONT) and 
            (y_count < V_DISPLAY + V_FRONT + V_SYNC) then
             vsync <= '0';
@@ -190,12 +186,11 @@ begin
             color_frame_counter <= 0;
             color_phase <= 0;
         elsif rising_edge(clk) then
-            -- 檢查是否為畫面上的最後一個像素（代表一整幀畫完）
+            
             if pixel_tick = '1' and x_count = H_TOTAL - 1 and y_count = V_TOTAL - 1 then
                 if color_frame_counter = COLOR_CHANGE_FRAMES - 1 then
                     color_frame_counter <= 0;
                     
-                    -- 色彩階段在 0、1、2 之間循環切換
                     if color_phase = 2 then
                         color_phase <= 0;
                     else
@@ -210,7 +205,6 @@ begin
 
     ------------------------------------------------------------
     -- 【Process 5: 畫面像素著色與消隱保護 (RGB Output)】
-    -- 組合邏輯：先確保在有效 1280x720 範圍內，再判斷座標是否落在星星內，並依據 color_phase 填入顏色
     ------------------------------------------------------------
     RGB_OUTPUT : process(x_count, y_count, color_phase)
     begin
@@ -218,12 +212,8 @@ begin
         green <= "0000";
         blue  <= "0000";
 
-        -- 僅在有效顯示區（1280x720）內進行繪圖，超出範圍自動進入消隱保護（輸出全黑）
         if x_count < H_DISPLAY and y_count < V_DISPLAY then
 
-            ----------------------------------------------------
-            -- 【第一顆星（左側 320, 360）色彩對應】
-            ----------------------------------------------------
             if point_in_star(x_count, y_count, RED_X, RED_Y) then
                 case color_phase is
                     when 0      => red   <= "1111";
@@ -233,9 +223,6 @@ begin
                 end case;
             end if;
 
-            ----------------------------------------------------
-            -- 【第二顆星（中間 640, 360）色彩對應】
-            ----------------------------------------------------
             if point_in_star(x_count, y_count, GREEN_X, GREEN_Y) then
                 case color_phase is
                     when 0      => green <= "1111";
@@ -245,9 +232,6 @@ begin
                 end case;
             end if;
 
-            ----------------------------------------------------
-            -- 【第三顆星（右側 960, 360）色彩對應】
-            ----------------------------------------------------
             if point_in_star(x_count, y_count, BLUE_X, BLUE_Y) then
                 case color_phase is
                     when 0      => blue  <= "1111";
