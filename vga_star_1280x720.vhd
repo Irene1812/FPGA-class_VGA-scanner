@@ -34,13 +34,13 @@ architecture Behavioral of vga_star is
     ------------------------------------------------------------
     -- 【星星顏色動態交換參數】
     ------------------------------------------------------------
-    constant COLOR_CHANGE_FRAMES : integer := 60;   -- 60 frames per color
+    constant COLOR_CHANGE_FRAMES : integer := 60;
 
     signal color_frame_counter : 
-        integer range 0 to COLOR_CHANGE_FRAMES-1 := 0;  -- accumulation frames
+        integer range 0 to COLOR_CHANGE_FRAMES-1 := 0;
 
     signal color_phase : 
-        integer range 0 to 2 := 0;                  -- color state（0、1、2）
+        integer range 0 to 2 := 0;
 
     ------------------------------------------------------------
     -- 【星星幾何形狀定義】
