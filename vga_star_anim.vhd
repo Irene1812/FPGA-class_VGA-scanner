@@ -1,4 +1,3 @@
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
@@ -19,6 +18,7 @@ end vga_star;
 
 architecture Behavioral of vga_star is
 
+    -- VGA 1280x720 Timing Parameters
     constant H_DISPLAY : integer := 1280;
     constant H_FRONT   : integer := 110;
     constant H_SYNC    : integer := 40;
@@ -32,38 +32,38 @@ architecture Behavioral of vga_star is
     constant V_TOTAL   : integer := 750;
 
     ------------------------------------------------------------
-    -- 【星星顏色動態交換參數】
+    -- Star Color Exchange Parameters
     ------------------------------------------------------------
     constant COLOR_CHANGE_FRAMES : integer := 60;
 
-    signal color_frame_counter : 
+    signal color_frame_counter :
         integer range 0 to COLOR_CHANGE_FRAMES-1 := 0;
 
-    signal color_phase : 
+    signal color_phase :
         integer range 0 to 2 := 0;
 
     ------------------------------------------------------------
-    -- 【星星幾何形狀定義】
+    -- Star Geometry Definition
     ------------------------------------------------------------
     type star_array is array (0 to 9) of integer;
 
-    constant STAR_X : star_array := 
+    constant STAR_X : star_array :=
         (0, 18, 62, 28, 38, 0, -38, -28, -62, -18);
 
-    constant STAR_Y : star_array := 
-        =(-60, -18, -16, 10, 55, 32, 55, 10, -16, -18);
+    constant STAR_Y : star_array :=
+        (-60, -18, -16, 10, 55, 32, 55, 10, -16, -18);
 
     ------------------------------------------------------------
-    -- 【VGA 掃描座標與時脈分頻內部信號】
+    -- VGA Scanning Coordinates and Clock Divider Signals
     ------------------------------------------------------------
     signal x_count : integer range 0 to H_TOTAL-1 := 0;
     signal y_count : integer range 0 to V_TOTAL-1 := 0;
 
-    signal pixel_acc  : integer range 0 to 9999 := 0;     
-    signal pixel_tick : STD_LOGIC := '0';                 
+    signal pixel_acc  : integer range 0 to 9999 := 0;
+    signal pixel_tick : STD_LOGIC := '0';
 
     ------------------------------------------------------------
-    -- 【三顆固定星星的中心座標】
+    -- Center Coordinates of the Three Fixed Stars
     ------------------------------------------------------------
     constant RED_X   : integer := 320;
     constant RED_Y   : integer := 360;
@@ -75,7 +75,8 @@ architecture Behavioral of vga_star is
     constant BLUE_Y  : integer := 360;
 
     ------------------------------------------------------------
-    -- 【射線交點演算法函數：判斷點 (px, py) 是否在星星內部】
+    -- Ray Casting Algorithm
+    -- Determines whether pixel (px, py) is inside the star
     ------------------------------------------------------------
     function point_in_star (
         px : integer;
@@ -86,14 +87,14 @@ architecture Behavioral of vga_star is
 
         variable inside : boolean := false;
         variable j      : integer := 9;
-        
+
         variable xi : integer;
         variable yi : integer;
         variable xj : integer;
         variable yj : integer;
 
     begin
-        -- 走訪 10 個頂點，利用射線相交原理（Ray Casting Algorithm）判斷像素點是否落入多邊形內
+        -- Check all 10 vertices using the ray casting algorithm
         for i in 0 to 9 loop
             xi := cx + STAR_X(i);
             yi := cy + STAR_Y(i);
@@ -105,6 +106,7 @@ architecture Behavioral of vga_star is
                     inside := not inside;
                 end if;
             end if;
+
             j := i;
         end loop;
 
@@ -114,13 +116,15 @@ architecture Behavioral of vga_star is
 begin
 
     ------------------------------------------------------------
-    -- 【Process 1: 像素時脈分頻處理 (Pixel Clock Enable)】
+    -- Process 1: Pixel Clock Divider
+    -- Generates a pixel clock enable signal from the system clock
     ------------------------------------------------------------
     PIXEL_CLOCK : process(clk, rst)
     begin
         if rst = '1' then
             pixel_acc  <= 0;
             pixel_tick <= '0';
+
         elsif rising_edge(clk) then
             if pixel_acc >= 2575 then
                 pixel_acc  <= pixel_acc - 2575;
@@ -133,23 +137,26 @@ begin
     end process;
 
     ------------------------------------------------------------
-    -- 【Process 2: 雙層掃描座標計數器 (VGA Counters)】
+    -- Process 2: VGA Horizontal and Vertical Counters
+    -- Updates the scanning coordinates when pixel_tick is active
     ------------------------------------------------------------
     VGA_COUNTER : process(clk, rst)
     begin
         if rst = '1' then
             x_count <= 0;
             y_count <= 0;
+
         elsif rising_edge(clk) then
             if pixel_tick = '1' then
                 if x_count = H_TOTAL - 1 then
                     x_count <= 0;
-                    
+
                     if y_count = V_TOTAL - 1 then
                         y_count <= 0;
                     else
                         y_count <= y_count + 1;
                     end if;
+
                 else
                     x_count <= x_count + 1;
                 end if;
@@ -158,18 +165,19 @@ begin
     end process;
 
     ------------------------------------------------------------
-    -- 【Process 3: 同步訊號產生器 (VGA Synchronization Signals)】
+    -- Process 3: VGA Synchronization Signals
+    -- Generates horizontal and vertical synchronization signals
     ------------------------------------------------------------
     SYNC_SIGNAL : process(x_count, y_count)
     begin
-        if (x_count >= H_DISPLAY + H_FRONT) and 
+        if (x_count >= H_DISPLAY + H_FRONT) and
            (x_count < H_DISPLAY + H_FRONT + H_SYNC) then
             hsync <= '0';
         else
             hsync <= '1';
         end if;
 
-        if (y_count >= V_DISPLAY + V_FRONT) and 
+        if (y_count >= V_DISPLAY + V_FRONT) and
            (y_count < V_DISPLAY + V_FRONT + V_SYNC) then
             vsync <= '0';
         else
@@ -178,24 +186,29 @@ begin
     end process;
 
     ------------------------------------------------------------
-    -- 【Process 4: 星星顏色循環計時器 (Color Exchange)】
+    -- Process 4: Star Color Exchange Timer
+    -- Changes the color phase every 60 complete VGA frames
     ------------------------------------------------------------
     COLOR_CHANGE : process(clk, rst)
     begin
         if rst = '1' then
             color_frame_counter <= 0;
             color_phase <= 0;
+
         elsif rising_edge(clk) then
-            
-            if pixel_tick = '1' and x_count = H_TOTAL - 1 and y_count = V_TOTAL - 1 then
+            if pixel_tick = '1' and
+               x_count = H_TOTAL - 1 and
+               y_count = V_TOTAL - 1 then
+
                 if color_frame_counter = COLOR_CHANGE_FRAMES - 1 then
                     color_frame_counter <= 0;
-                    
+
                     if color_phase = 2 then
                         color_phase <= 0;
                     else
                         color_phase <= color_phase + 1;
                     end if;
+
                 else
                     color_frame_counter <= color_frame_counter + 1;
                 end if;
@@ -204,7 +217,8 @@ begin
     end process;
 
     ------------------------------------------------------------
-    -- 【Process 5: 畫面像素著色與消隱保護 (RGB Output)】
+    -- Process 5: RGB Pixel Generation and Blanking Protection
+    -- Displays the three stars with dynamically exchanged colors
     ------------------------------------------------------------
     RGB_OUTPUT : process(x_count, y_count, color_phase)
     begin
@@ -212,8 +226,10 @@ begin
         green <= "0000";
         blue  <= "0000";
 
+        -- Display pixels only within the active screen area
         if x_count < H_DISPLAY and y_count < V_DISPLAY then
 
+            -- Red Star
             if point_in_star(x_count, y_count, RED_X, RED_Y) then
                 case color_phase is
                     when 0      => red   <= "1111";
@@ -223,6 +239,7 @@ begin
                 end case;
             end if;
 
+            -- Green Star
             if point_in_star(x_count, y_count, GREEN_X, GREEN_Y) then
                 case color_phase is
                     when 0      => green <= "1111";
@@ -232,6 +249,7 @@ begin
                 end case;
             end if;
 
+            -- Blue Star
             if point_in_star(x_count, y_count, BLUE_X, BLUE_Y) then
                 case color_phase is
                     when 0      => blue  <= "1111";
