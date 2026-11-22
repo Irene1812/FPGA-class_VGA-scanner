@@ -11,18 +11,13 @@ https://github.com/user-attachments/assets/8bfb72e4-10cb-48dd-845a-a88287f0059a
 # 星形幾何與射線判斷圖
 
 1. 星形幾何定義
-1.1. 星形座標
-該使用十個頂點（10 Vertices）定義五角星的幾何形狀，透過連接十個頂點形成封閉的多邊形（Polygon）。星星的幾何形狀由 STAR_X 和 STAR_Y 兩組座標陣列定義：
+使用十個頂點（10 Vertices）定義五角星的幾何形狀，透過連接十個頂點形成封閉的多邊形（Polygon）。星星的幾何形狀由 STAR_X 和 STAR_Y 兩組座標陣列定義：
 
-type star_array is array (0 to 9) of integer;
-constant STAR_X : star_array :=
-    (0, 18, 62, 28, 38, 0, -38, -28, -62, -18);
-constant STAR_Y : star_array :=
-    (-60, -18, -16, 10, 55, 32, 55, 10, -16, -18);
+
 
 <img width="663" height="667" alt="desmos-graph" src="https://github.com/user-attachments/assets/ff36f2ec-a32b-4264-88ed-3c640f1e0fab" />
 
-1.2. 座標計算
+座標計算：
 星星實際頂點位置是由中心座標加上相對座標計算而得：
     X_i=C_x+STAR\_X(i)
     Y_i=C_y+STAR\_Y(i)
@@ -44,34 +39,7 @@ VGA 會依照水平及垂直掃描座標，逐一取得目前像素位置 (x_cou
 *如果測試點在星星內部，往外移動時必須穿過奇數次邊界才能離開。
 *如果測試點在星星外部，往右移動時穿過的邊界次數會是偶數。
 
-variable inside : boolean := false;
-variable j      : integer := 9;
 
-begin
-    for i in 0 to 9 loop
-
-        xi := cx + STAR_X(i);
-        yi := cy + STAR_Y(i);
-
-        xj := cx + STAR_X(j);
-        yj := cy + STAR_Y(j);
-
-        -- 判斷兩個頂點是否位於測試點水平線的不同側
-        if ((yi > py) /= (yj > py)) then 
-
-            -- 如果成立，代表這條邊與測試點向右延伸的射線相交，因此切換 inside 的狀態
-            if px < (xj - xi) * (py - yi) / (yj - yi) + xi then
-                -- 每次有效交點發生時，切換內外狀態
-                inside := not inside; 
-            end if;
-
-        end if;
-
-        j := i;
-
-    end loop;
-
-    return inside;
 
 判斷結果	         意義	             RGB 輸出
 inside = true	   射線交點數為奇數	 顯示星星顏色
